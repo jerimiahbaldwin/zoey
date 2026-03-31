@@ -28,15 +28,19 @@ zoey/
 
 - `GET /docs`: returns JSON docs of the main capabilities.
 - `GET /health`: returns a basic health payload.
+- `GET /unlock`: serves a simple HTML page that prompts for the passphrase.
+- `POST /unlock`: validates passphrase and sets a long-lived auth cookie (200 days).
 - `GET /files`: lists files in the bucket. Requires `passphrase`; supports optional `prefix` and `limit`.
 - `GET /`: reads a file. Requires `passphrase`; optional `fileName` (defaults to `default.Txt`).
 - `POST /`: writes a file. Requires JSON body with `passphrase`, `content`, and optional `fileName`.
+- `DELETE /`: deletes a file. Requires `passphrase`; optional `fileName` (defaults to `default.Txt`).
+
+All protected routes also accept the auth cookie set by `POST /unlock`, so browser requests can remain authenticated without repeating `passphrase`.
 
 ## Stubbed routes
 
 These are registered now and return `501 Not Implemented` until you fill them in.
 
-- `DELETE /`
 - `POST /files/copy`
 - `POST /files/move`
 - `GET /search`

@@ -3,6 +3,7 @@ import json
 import pytest
 
 from zoey import app
+from zoey.config import AUTH_COOKIE_NAME
 from zoey.config import PASSPHRASE
 
 
@@ -10,6 +11,7 @@ class FakeStore:
     def __init__(self):
         self.bucket = "test-bucket"
         self.writes = []
+        self.deletes = []
 
     def list_files(self, prefix, limit):
         return [f"{prefix}alpha.txt", f"{prefix}beta.txt"][:limit]
@@ -19,6 +21,9 @@ class FakeStore:
 
     def write_text(self, key, content):
         self.writes.append((key, content))
+
+    def delete_file(self, key):
+        self.deletes.append(key)
 
     def is_missing_key_error(self, error):
         return False
@@ -78,3 +83,88 @@ def test_write_file_persists_content(fake_store):
 
     assert response["statusCode"] == 200
     assert fake_store.writes == [("notes.txt", "hello")]
+
+
+def test_delete_file_removes_object(fake_store):
+    response = app.lambda_handler(
+        {
+            "httpMethod": "DELETE",
+            "path": "/",
+            "queryStringParameters": {"passphrase": PASSPHRASE, "fileName": "notes.txt"},
+        },
+        None,
+    )
+
+    assert response["statusCode"] == 200
+    assert fake_store.deletes == ["notes.txt"]
+
+
+def test_unlock_get_serves_html(fake_store):
+    response = app.lambda_handler({"httpMethod": "GET", "path": "/unlock"}, None)
+
+    assert response["statusCode"] == 200
+    assert response["headers"]["Content-Type"] == "text/html; charset=utf-8"
+    assert "Enter Passphrase" in response["body"]
+
+
+def test_root_route_serves_unlock_page_when_unauthenticated(fake_store):
+    response = app.lambda_handler({"httpMethod": "GET", "path": "/"}, None)
+
+    assert response["statusCode"] == 200
+    assert response["headers"]["Content-Type"] == "text/html; charset=utf-8"
+    assert "Enter Passphrase" in response["body"]
+
+
+def test_root_route_reads_file_when_authenticated(fake_store):
+    response = app.lambda_handler(
+        {
+            "httpMethod": "GET",
+            "path": "/",
+            "queryStringParameters": {"passphrase": PASSPHRASE, "fileName": "notes.txt"},
+        },
+        None,
+    )
+
+    assert response["statusCode"] == 200
+    assert parse_body(response)["content"] == "contents:notes.txt"
+
+
+def test_unlock_post_sets_auth_cookie(fake_store):
+    response = app.lambda_handler(
+        {
+            "httpMethod": "POST",
+            "path": "/unlock",
+            "body": {"passphrase": PASSPHRASE},
+        },
+        None,
+    )
+
+    assert response["statusCode"] == 200
+    assert "Set-Cookie" in response["headers"]
+    assert response["headers"]["Set-Cookie"].startswith(f"{AUTH_COOKIE_NAME}=")
+
+
+def test_protected_route_accepts_valid_auth_cookie(fake_store):
+    unlock_response = app.lambda_handler(
+        {
+            "httpMethod": "POST",
+            "path": "/unlock",
+            "body": {"passphrase": PASSPHRASE},
+        },
+        None,
+    )
+    cookie = unlock_response["headers"]["Set-Cookie"]
+
+    response = app.lambda_handler(
+        {
+            "httpMethod": "GET",
+            "path": "/files",
+            "queryStringParameters": {"prefix": "docs/", "limit": "2"},
+            "headers": {"Cookie": cookie},
+        },
+        None,
+    )
+
+    assert response["statusCode"] == 200
+    body = parse_body(response)
+    assert body["files"] == ["docs/alpha.txt", "docs/beta.txt"]

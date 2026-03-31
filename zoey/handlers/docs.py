@@ -12,6 +12,8 @@ def get_docs(_request, _store):
             "auth": {
                 "passphraseRequiredForDataRoutes": True,
                 "passphraseField": "passphrase",
+                "cookieAuthRoute": "/unlock",
+                "cookieLifetimeSeconds": 200 * 24 * 60 * 60,
             },
             "routes": [
                 {
@@ -28,6 +30,19 @@ def get_docs(_request, _store):
                 },
                 {
                     "method": "GET",
+                    "path": "/unlock",
+                    "description": "Serve a simple HTML passphrase form.",
+                    "requiresPassphrase": False,
+                },
+                {
+                    "method": "POST",
+                    "path": "/unlock",
+                    "description": "Validate passphrase and set a long-lived auth cookie.",
+                    "requiresPassphrase": False,
+                    "body": ["passphrase"],
+                },
+                {
+                    "method": "GET",
                     "path": "/files",
                     "description": "List objects in the configured S3 bucket.",
                     "requiresPassphrase": True,
@@ -36,9 +51,9 @@ def get_docs(_request, _store):
                 {
                     "method": "GET",
                     "path": "/",
-                    "description": "Read file content from S3.",
-                    "requiresPassphrase": True,
-                    "query": ["passphrase", "fileName (optional)"],
+                    "description": "Default entrypoint: serves unlock page unless authenticated, then reads file content from S3.",
+                    "requiresPassphrase": False,
+                    "query": ["passphrase (optional)", "fileName (optional)"],
                 },
                 {
                     "method": "POST",
@@ -52,7 +67,7 @@ def get_docs(_request, _store):
                     "path": "/",
                     "description": "Delete a file from S3.",
                     "requiresPassphrase": True,
-                    "status": "stub",
+                    "query": ["passphrase", "fileName (optional)"],
                 },
                 {
                     "method": "POST",
