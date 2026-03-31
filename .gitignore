@@ -1,5 +1,6 @@
 .env
 .env.*
+secrets.txt
 
 .venv/
 venv/
