@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
-      LAMBDA_FUNCTION_NAME: ${{ secrets.AWS_LAMBDA_FUNCTION_NAME }}
+      LAMBDA_FUNCTION_NAME: zoey
 
     steps:
       - name: Checkout
@@ -32,13 +32,12 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${AWS_REGION}" || { echo "Missing secret: AWS_REGION"; exit 1; }
-          test -n "${LAMBDA_FUNCTION_NAME}" || { echo "Missing secret: AWS_LAMBDA_FUNCTION_NAME"; exit 1; }
 
       - name: Package Lambda
         shell: bash
         run: |
           set -euo pipefail
-          zip -j function.zip lambda_function.py
+          zip -r function.zip lambda_function.py zoey -x "*/__pycache__/*" "*.pyc"
 
       - name: Deploy Lambda code
         shell: bash
