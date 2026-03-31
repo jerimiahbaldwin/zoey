@@ -52,6 +52,15 @@ def write_file(request, store):
     return json_response(200, {"message": "Write successful", "bucket": store.bucket, "key": object_key})
 
 
+def delete_file(request, store):
+    object_key, key_error = _extract_object_key(request.body, request.query)
+    if key_error:
+        return key_error
+
+    store.delete_file(object_key)
+    return json_response(200, {"message": "Delete successful", "bucket": store.bucket, "key": object_key})
+
+
 def _parse_limit(query):
     raw = query.get("limit")
     if raw is None or raw == "":

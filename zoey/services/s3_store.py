@@ -41,6 +41,9 @@ class S3Store:
     def write_text(self, key, content):
         self.client.put_object(Bucket=self.bucket, Key=key, Body=content.encode("utf-8"))
 
+    def delete_file(self, key):
+        self.client.delete_object(Bucket=self.bucket, Key=key)
+
     def is_missing_key_error(self, error):
         if not isinstance(error, ClientError):
             return False
