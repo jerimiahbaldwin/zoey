@@ -9,6 +9,7 @@ class Request:
     path: str
     body: dict
     query: dict
+    headers: dict
 
 
 def build_request(event):
@@ -17,6 +18,7 @@ def build_request(event):
         path=_normalize_path(_extract_path(event)),
         body=_extract_json_body(event),
         query=_extract_query_params(event),
+        headers=_extract_headers(event),
     )
 
 
@@ -59,7 +61,10 @@ def _extract_json_body(event):
         if body_text.strip() == "":
             return {}
 
-        return json.loads(body_text)
+        try:
+            return json.loads(body_text)
+        except json.JSONDecodeError:
+            return {}
 
     return {}
 
@@ -73,6 +78,24 @@ def _extract_query_params(event):
         return params
 
     return {}
+
+
+def _extract_headers(event):
+    if not isinstance(event, dict):
+        return {}
+
+    headers = event.get("headers")
+    if not isinstance(headers, dict):
+        return {}
+
+    normalized = {}
+    for key, value in headers.items():
+        if key is None:
+            continue
+
+        normalized[str(key).lower()] = "" if value is None else str(value)
+
+    return normalized
 
 
 def _extract_path(event):
