@@ -3,3 +3,6 @@ line-length = 220
 
 [tool.ruff]
 line-length = 220
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -49,3 +49,31 @@ When you add another Lambda capability:
 2. Put external API or storage logic in `zoey/services/`.
 3. Register the route in `zoey/app.py`.
 4. Add the route to `/docs` so the Lambda stays self-describing.
+
+## Local verification
+
+Install the local verification tooling:
+
+```bash
+python -m pip install -r requirements-dev.txt
+```
+
+Run the full local gate before pushing:
+
+```bash
+python scripts/preflight.py
+```
+
+That command runs:
+
+- `black --check .`
+- `ruff check .`
+- `pytest`
+- Python bytecode compilation for `lambda_function.py` and `zoey/`
+- Lambda packaging to `dist/function.zip`
+
+If you want to apply formatting locally before re-running the gate:
+
+```bash
+python scripts/preflight.py format
+```
