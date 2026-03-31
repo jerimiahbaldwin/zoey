@@ -1,0 +1,64 @@
+name: Deploy Lambda to AWS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      LAMBDA_FUNCTION_NAME: ${{ secrets.AWS_LAMBDA_FUNCTION_NAME }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${AWS_REGION}" || { echo "Missing secret: AWS_REGION"; exit 1; }
+          test -n "${LAMBDA_FUNCTION_NAME}" || { echo "Missing secret: AWS_LAMBDA_FUNCTION_NAME"; exit 1; }
+
+      - name: Package Lambda
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip -j function.zip lambda_function.py
+
+      - name: Deploy Lambda code
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws lambda update-function-code \
+            --function-name "${LAMBDA_FUNCTION_NAME}" \
+            --zip-file fileb://function.zip
+
+      - name: Wait for update completion
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws lambda wait function-updated \
+            --function-name "${LAMBDA_FUNCTION_NAME}"
+
+      - name: Deployment summary
+        shell: bash
+        run: |
+          aws lambda get-function \
+            --function-name "${LAMBDA_FUNCTION_NAME}" \
+            --query 'Configuration.[FunctionName,LastModified,Version]' \
+            --output table
