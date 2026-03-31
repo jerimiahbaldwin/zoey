@@ -135,7 +135,7 @@ def _unlock_html():
     <input id=\"passphrase\" type=\"password\" autocomplete=\"current-password\" />
         <label class=\"toggle\" for=\"show-passphrase\">
             <input id=\"show-passphrase\" type=\"checkbox\" />
-            Show passphrase
+            Show passphrase while typing
         </label>
     <button id=\"unlock\" type=\"button\">Unlock</button>
     <p class=\"status\" id=\"status\"></p>
@@ -180,17 +180,17 @@ def _unlock_html():
 
 
 def _unlocked_home_html(keys, prefix):
-        items = []
-        for key in keys:
-                encoded_key = quote(key, safe="")
-                escaped_key = html.escape(key)
-                items.append(f'<li><a href="/?fileName={encoded_key}">{escaped_key}</a></li>')
+    items = []
+    for key in keys:
+        encoded_key = quote(key, safe="")
+        escaped_key = html.escape(key)
+        items.append(f'<li><a href="/?fileName={encoded_key}">{escaped_key}</a></li>')
 
-        if not items:
-                items.append("<li>No files found for this prefix.</li>")
+    if not items:
+        items.append("<li>No files found for this prefix.</li>")
 
-        escaped_prefix = html.escape(prefix)
-        return f"""<!doctype html>
+    escaped_prefix = html.escape(prefix)
+    return f"""<!doctype html>
 <html lang=\"en\">
 <head>
     <meta charset=\"utf-8\" />
