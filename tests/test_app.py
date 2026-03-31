@@ -129,6 +129,22 @@ def test_root_route_reads_file_when_authenticated(fake_store):
     assert parse_body(response)["content"] == "contents:notes.txt"
 
 
+def test_root_route_lists_files_when_authenticated_without_file_name(fake_store):
+    response = app.lambda_handler(
+        {
+            "httpMethod": "GET",
+            "path": "/",
+            "queryStringParameters": {"passphrase": PASSPHRASE, "prefix": "docs/"},
+        },
+        None,
+    )
+
+    assert response["statusCode"] == 200
+    assert response["headers"]["Content-Type"] == "text/html; charset=utf-8"
+    assert "S3 Files" in response["body"]
+    assert '/?fileName=docs%2Falpha.txt' in response["body"]
+
+
 def test_unlock_post_sets_auth_cookie(fake_store):
     response = app.lambda_handler(
         {

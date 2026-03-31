@@ -1,5 +1,5 @@
 from zoey.config import PASSPHRASE
-from zoey.handlers.auth import get_unlock_page, has_valid_auth_cookie, unlock
+from zoey.handlers.auth import get_unlock_page, get_unlocked_home_page, has_valid_auth_cookie, unlock
 from zoey.handlers.docs import get_docs, get_health
 from zoey.handlers.files import delete_file, list_files, read_file, write_file
 from zoey.handlers.stubs import copy_file, move_file, search_files
@@ -14,6 +14,10 @@ def root_entry(request, store):
     has_cookie_auth = has_valid_auth_cookie(request)
 
     if has_passphrase or has_cookie_auth:
+        requested_file_name = request.body.get("fileName") or request.query.get("fileName")
+        if not requested_file_name:
+            return get_unlocked_home_page(request, store)
+
         return read_file(request, store)
 
     return get_unlock_page(request, store)
