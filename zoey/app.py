@@ -1,5 +1,5 @@
 from zoey.config import PASSPHRASE
-from zoey.handlers.auth import get_unlock_page, get_unlocked_home_page, has_valid_auth_cookie, unlock
+from zoey.handlers.auth import get_unlock_page, get_unlocked_home_page, has_valid_auth_cookie, lock, unlock
 from zoey.handlers.docs import get_docs, get_health
 from zoey.handlers.files import delete_file, list_files, read_file, write_file
 from zoey.handlers.stubs import copy_file, move_file, search_files
@@ -28,6 +28,7 @@ ROUTES = {
     ("GET", "/health"): {"handler": get_health, "requires_passphrase": False},
     ("GET", "/unlock"): {"handler": get_unlock_page, "requires_passphrase": False},
     ("POST", "/unlock"): {"handler": unlock, "requires_passphrase": False},
+    ("POST", "/lock"): {"handler": lock, "requires_passphrase": False},
     ("GET", "/files"): {"handler": list_files, "requires_passphrase": True},
     ("GET", "/"): {"handler": root_entry, "requires_passphrase": False},
     ("POST", "/"): {"handler": write_file, "requires_passphrase": True},

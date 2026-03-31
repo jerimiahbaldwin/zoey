@@ -42,6 +42,12 @@ def get_docs(_request, _store):
                     "body": ["passphrase"],
                 },
                 {
+                    "method": "POST",
+                    "path": "/lock",
+                    "description": "Clear the auth cookie and lock the browser session.",
+                    "requiresPassphrase": False,
+                },
+                {
                     "method": "GET",
                     "path": "/files",
                     "description": "List objects in the configured S3 bucket.",

@@ -24,6 +24,10 @@ def unlock(request, _store):
     return json_response(200, {"message": "Unlocked", "expiresInSeconds": AUTH_COOKIE_MAX_AGE_SECONDS}, headers={"Set-Cookie": cookie})
 
 
+def lock(_request, _store):
+    return json_response(200, {"message": "Locked"}, headers={"Set-Cookie": _build_cleared_auth_cookie()})
+
+
 def get_unlocked_home_page(request, store):
     prefix = request.query.get("prefix", "")
     if not isinstance(prefix, str):
@@ -92,6 +96,19 @@ def _build_auth_cookie(token):
         [
             f"{AUTH_COOKIE_NAME}={token}",
             f"Max-Age={AUTH_COOKIE_MAX_AGE_SECONDS}",
+            "Path=/",
+            "HttpOnly",
+            "Secure",
+            "SameSite=Lax",
+        ]
+    )
+
+
+def _build_cleared_auth_cookie():
+    return "; ".join(
+        [
+            f"{AUTH_COOKIE_NAME}=",
+            "Max-Age=0",
             "Path=/",
             "HttpOnly",
             "Secure",
@@ -199,8 +216,11 @@ def _unlocked_home_html(keys, prefix):
     <style>
         body {{ font-family: sans-serif; margin: 0; min-height: 100vh; background: #f4f6f8; color: #111827; }}
         .shell {{ width: min(760px, 92vw); margin: 24px auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.08); }}
+        .toolbar {{ display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }}
         h1 {{ margin: 0 0 8px; font-size: 1.35rem; }}
         p {{ margin: 0 0 16px; color: #4b5563; }}
+        .lock-btn {{ border: 1px solid #d1d5db; background: #fff; color: #111827; border-radius: 8px; padding: 8px 12px; font-weight: 600; cursor: pointer; }}
+        .lock-btn:hover {{ background: #f9fafb; }}
         ul {{ margin: 0; padding-left: 20px; }}
         li {{ margin: 8px 0; word-break: break-word; }}
         a {{ color: #0f62fe; text-decoration: none; }}
@@ -209,12 +229,22 @@ def _unlocked_home_html(keys, prefix):
 </head>
 <body>
     <main class=\"shell\">
-        <h1>S3 Files</h1>
+        <div class=\"toolbar\">
+            <h1>S3 Files</h1>
+            <button type=\"button\" id=\"lock\" class=\"lock-btn\">Lock</button>
+        </div>
         <p>Signed in. Prefix filter: <strong>{escaped_prefix or '/'}</strong></p>
         <ul>
             {''.join(items)}
         </ul>
     </main>
+    <script>
+        const lockButton = document.getElementById('lock');
+        lockButton.addEventListener('click', async () => {{
+            await fetch('/lock', {{ method: 'POST' }});
+            window.location.href = '/unlock';
+        }});
+    </script>
 </body>
 </html>
 """

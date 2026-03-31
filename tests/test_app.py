@@ -143,6 +143,7 @@ def test_root_route_lists_files_when_authenticated_without_file_name(fake_store)
     assert response["statusCode"] == 200
     assert response["headers"]["Content-Type"] == "text/html; charset=utf-8"
     assert "S3 Files" in response["body"]
+    assert 'id="lock"' in response["body"]
     assert "/?fileName=docs%2Falpha.txt" in response["body"]
 
 
@@ -159,6 +160,22 @@ def test_unlock_post_sets_auth_cookie(fake_store):
     assert response["statusCode"] == 200
     assert "Set-Cookie" in response["headers"]
     assert response["headers"]["Set-Cookie"].startswith(f"{AUTH_COOKIE_NAME}=")
+
+
+def test_lock_post_clears_auth_cookie(fake_store):
+    response = app.lambda_handler(
+        {
+            "httpMethod": "POST",
+            "path": "/lock",
+        },
+        None,
+    )
+
+    assert response["statusCode"] == 200
+    assert parse_body(response)["message"] == "Locked"
+    assert "Set-Cookie" in response["headers"]
+    assert response["headers"]["Set-Cookie"].startswith(f"{AUTH_COOKIE_NAME}=")
+    assert "Max-Age=0" in response["headers"]["Set-Cookie"]
 
 
 def test_protected_route_accepts_valid_auth_cookie(fake_store):
