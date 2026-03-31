@@ -16,8 +16,17 @@ class FakeStore:
     def list_files(self, prefix, limit):
         return [f"{prefix}alpha.txt", f"{prefix}beta.txt"][:limit]
 
-    def read_text(self, key):
-        return f"contents:{key}"
+    def read_object(self, key):
+        if key == "page.custom":
+            return b"<h1>hello</h1>", "text/html; charset=utf-8"
+        if key.endswith(".json"):
+            return b'{"message":"ok"}', None
+        if key.endswith(".csv"):
+            return b"a,b\n1,2\n", None
+        if key.endswith(".md"):
+            return b"# Hello\n", None
+
+        return f"contents:{key}".encode("utf-8"), None
 
     def write_text(self, key, content):
         self.writes.append((key, content))
@@ -127,7 +136,38 @@ def test_root_route_reads_file_when_authenticated(fake_store):
     )
 
     assert response["statusCode"] == 200
-    assert parse_body(response)["content"] == "contents:notes.txt"
+    assert response["headers"]["Content-Type"] == "text/plain"
+    assert response["body"] == "contents:notes.txt"
+
+
+def test_root_route_reads_json_file_without_wrapping(fake_store):
+    response = app.lambda_handler(
+        {
+            "httpMethod": "GET",
+            "path": "/",
+            "queryStringParameters": {"passphrase": PASSPHRASE, "fileName": "data.json"},
+        },
+        None,
+    )
+
+    assert response["statusCode"] == 200
+    assert response["headers"]["Content-Type"] == "application/json"
+    assert response["body"] == '{"message":"ok"}'
+
+
+def test_root_route_honors_s3_content_type_when_present(fake_store):
+    response = app.lambda_handler(
+        {
+            "httpMethod": "GET",
+            "path": "/",
+            "queryStringParameters": {"passphrase": PASSPHRASE, "fileName": "page.custom"},
+        },
+        None,
+    )
+
+    assert response["statusCode"] == 200
+    assert response["headers"]["Content-Type"] == "text/html; charset=utf-8"
+    assert response["body"] == "<h1>hello</h1>"
 
 
 def test_root_route_lists_files_when_authenticated_without_file_name(fake_store):

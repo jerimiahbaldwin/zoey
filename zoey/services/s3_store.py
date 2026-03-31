@@ -35,8 +35,12 @@ class S3Store:
         return keys
 
     def read_text(self, key):
+        content, _ = self.read_object(key)
+        return content.decode("utf-8")
+
+    def read_object(self, key):
         obj = self.client.get_object(Bucket=self.bucket, Key=key)
-        return obj["Body"].read().decode("utf-8")
+        return obj["Body"].read(), obj.get("ContentType")
 
     def write_text(self, key, content):
         self.client.put_object(Bucket=self.bucket, Key=key, Body=content.encode("utf-8"))

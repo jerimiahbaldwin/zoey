@@ -1,7 +1,9 @@
+import mimetypes
+
 from botocore.exceptions import ClientError
 
 from zoey.config import DEFAULT_OBJECT_KEY
-from zoey.http import json_response
+from zoey.http import binary_response, json_response, text_response
 
 
 def list_files(request, store):
@@ -31,8 +33,18 @@ def read_file(request, store):
         return key_error
 
     try:
-        text = store.read_text(object_key)
-        return json_response(200, {"content": text, "bucket": store.bucket, "key": object_key})
+        content_bytes, content_type = store.read_object(object_key)
+        resolved_content_type = _resolve_content_type(content_type, object_key)
+
+        if _is_textual_content_type(resolved_content_type):
+            try:
+                text = content_bytes.decode("utf-8")
+            except UnicodeDecodeError:
+                return binary_response(200, content_bytes, "application/octet-stream")
+
+            return text_response(200, text, resolved_content_type)
+
+        return binary_response(200, content_bytes, resolved_content_type)
     except ClientError as error:
         if store.is_missing_key_error(error):
             return json_response(404, {"error": f"{object_key} not found"})
@@ -91,3 +103,22 @@ def _extract_object_key(payload, query):
         return None, json_response(400, {"error": "fileName contains invalid characters"})
 
     return key, None
+
+
+def _resolve_content_type(s3_content_type, object_key):
+    if isinstance(s3_content_type, str) and s3_content_type.strip() != "":
+        return s3_content_type
+
+    guessed_content_type, _ = mimetypes.guess_type(object_key)
+    if guessed_content_type:
+        return guessed_content_type
+
+    return "application/octet-stream"
+
+
+def _is_textual_content_type(content_type):
+    lowered = content_type.lower()
+    if lowered.startswith("text/"):
+        return True
+
+    return lowered.startswith("application/json")
